@@ -33,6 +33,7 @@ const userSlice = createSlice({
     },
     refresh: (state, action) => {
       state.accessToken = action.payload;
+      state.status = true;
     }
   },
 });

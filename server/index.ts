@@ -3,9 +3,12 @@ import "dotenv/config";
 import {createServer} from "node:http";
 import serverInit from "./src/server.ts";
 import connectToDb from "./src/common/config/db.ts";
+import initializeSocket from "./socket.ts";
 
 function main() {
     const server = createServer(serverInit());
+
+    initializeSocket(server);
 
     const port = process.env.PORT ?? 3001;
 

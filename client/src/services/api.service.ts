@@ -16,7 +16,6 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response.data.message === "TOKEN_REQUIRED" || error.response.data.message === "TokenExpiredError") {
-            console.log("error");
 
             store.dispatch(refresh(null));
 
@@ -36,7 +35,6 @@ api.interceptors.response.use(
 api.interceptors.request.use(
     (config) => {
         const token = store.getState().user.accessToken;
-        console.log(token, "token", store.getState().user);
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;

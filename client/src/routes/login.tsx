@@ -2,6 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { LogIn, BarChart3 } from 'lucide-react'
 
 export const Route = createFileRoute('/login')({
+  validateSearch: (search) => ({
+    redirect:
+      typeof search.redirect === 'string'
+        ? search.redirect
+        : '/',
+  }),
   component: Login,
 });
 

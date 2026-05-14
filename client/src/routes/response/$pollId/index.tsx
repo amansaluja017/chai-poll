@@ -1,10 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react';
 import { Clock, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { PollResponse } from '#/services/apiClient.service';
 import apiClient from '#/services/apiClient.service';
 import { AxiosError } from 'axios';
 import { Skeleton } from '#/components/ui/skeleton';
+import { useAuth } from '#/auth/use-auth';
+import { useSocket } from '#/socket/use-socket';
 
 export const Route = createFileRoute('/response/$pollId/')({
   component: RouteComponent,
@@ -20,6 +22,9 @@ function RouteComponent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [poll, setPoll] = useState<PollResponse | null>(null);
+
+  const { user, loading: authLoading, setGuestId } = useAuth();
+  const socket = useSocket();
 
   useEffect(() => {
     const expiryDate = new Date(poll?.expiry!);
@@ -51,8 +56,27 @@ function RouteComponent() {
         const response = await apiClient.getPollById(pollId);
 
         if (response.status === 200) {
-          console.log(response.response)
           setPoll(response.response);
+
+
+          if (response.response.isAuthenticationRequired && !user) {
+            console.log("hiii")
+            // if (authLoading) {
+            //   return <div>Loading...</div>
+            // };
+
+            setError("Authentication required to respond to this poll");
+            return;
+          } else if (!response.response.isAuthenticationRequired) {
+            console.log("I'm here : ")
+            const guestId = crypto.randomUUID();
+            setGuestId(guestId);
+          };
+
+          if (response.response.isCompleted) {
+            setError("Poll is already completed");
+            return;
+          };
         };
 
       } catch (error) {
@@ -67,7 +91,7 @@ function RouteComponent() {
     }
 
     getPollById();
-  }, [pollId]);
+  }, [pollId, user]);
 
   const handleOptionSelect = (questionId: string, optionId: string) => {
     setResponses(prev => ({ ...prev, [questionId]: optionId }));
@@ -80,15 +104,25 @@ function RouteComponent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    console.log(responses);
+    console.log(socket)
+
+    if (!socket) return;
 
     try {
-      const response = await apiClient.responsePoll(pollId, responses);
+      // const response = await apiClient.responsePoll(pollId, responses);
 
-      if (response.status === 200) {
-        setError('');
-        setIsSubmitted(true);
-      }
+      // if (response.status === 200) {
+      //   setError('');
+      //   setIsSubmitted(true);
+      // }
+
+      socket.connect();
+
+      socket.emit("client:poll:response", {
+        pollId,
+        responses
+      });
+
     } catch (error) {
       if (error instanceof AxiosError) {
         setError(error.response?.data.message || 'Failed to submit poll');
@@ -97,6 +131,8 @@ function RouteComponent() {
       }
     } finally {
       setIsSubmitting(false);
+      setIsSubmitted(true);
+      socket.off("client:poll:response");
     }
   };
 
@@ -131,13 +167,41 @@ function RouteComponent() {
   if (error) {
     return (
       <main className="min-h-screen p-6 md:p-12 font-sans flex flex-col items-center" style={{ paddingTop: '150px' }}>
-        <div className="bg-red-500/10 text-red-600 border border-red-500/20 rounded-2xl p-8 max-w-md w-full text-center shadow-lg mt-10">
-          <h2 className="text-2xl font-bold mb-4">Error Loading Poll</h2>
-          <p className="font-medium">{error}</p>
+        <div className="bg-(--surface) border border-red-500/20 rounded-3xl p-10 max-w-lg w-full text-center shadow-xl mt-10 space-y-6 animate-in zoom-in-95">
+          <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10" />
+          </div>
+          <h1 className="text-2xl font-bold text-(--sea-ink)">Access Denied</h1>
+          <p className="font-medium text-(--sea-ink-soft) text-lg">{error}</p>
+          
+          {error.toLowerCase().includes("authentication") && (
+            <Link 
+              to="/login" 
+              search={{ redirect: window.location.pathname }}
+              className="inline-flex items-center justify-center px-8 py-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(242,146,59,0.3)] hover:shadow-[0_0_30px_rgba(242,146,59,0.5)] hover:-translate-y-1 transition-all duration-300 w-full mt-4"
+              style={{ backgroundColor: '#F2923B' }}
+            >
+              Sign In to Respond
+            </Link>
+          )}
         </div>
       </main>
     );
-  }
+  };
+
+  if (timeLeft === "Expired") {
+    return (
+      <main className="min-h-screen p-6 md:p-12 font-sans flex items-center justify-center" style={{ paddingTop: '150px' }}>
+        <div className="bg-(--surface) border border-(--line) rounded-3xl p-10 shadow-xl max-w-lg w-full text-center space-y-4 animate-in zoom-in-95">
+          <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-bold text-(--sea-ink)">Poll Expired</h1>
+          <p className="text-(--sea-ink-soft) text-lg">This poll has expired and can no longer be submitted.</p>
+        </div>
+      </main>
+    );
+  };
 
   if (!poll) return null;
 

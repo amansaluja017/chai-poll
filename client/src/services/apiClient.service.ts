@@ -46,7 +46,6 @@ const apiClient = {
 
   createPoll: async (data: any) => {
     const response = await api.post(`${import.meta.env.VITE_API_URL}/api/v1/poll/create`, data);
-    console.log(response.data.data);
     return { response: response.data.data as PollResponse, status: response.status };
   },
 

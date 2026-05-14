@@ -25,7 +25,6 @@ function RouteComponent() {
         const reponse = await apiClient.getMyPolls();
         setMyPolls(reponse.response);
       } catch (error: unknown) {
-        console.log(error);
         if (error instanceof AxiosError) {
           setError(error.response?.data.message || "Failed to get polls");
         }

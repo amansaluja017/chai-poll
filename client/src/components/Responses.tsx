@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import apiClient from "../services/apiClient.service.ts";
 import { Mail, Clock, Inbox } from "lucide-react";
 
-interface Responders {
+export interface Responders {
     _id: string;
     user: {
         _id: string;
@@ -25,10 +25,10 @@ const generateRandomName = (id: string) => {
     return `${adj} ${noun}`;
 };
 
-function Responses({ pollId }: { pollId: string }) {
-    const [responders, setResponders] = useState<Responders[]>([]);
+function Responses({ pollId, responders }: { pollId: string, responders: Responders[] }) {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
+    const [initialResponders, setInitialResponders] = useState<Responders[]>([]);
 
     useEffect(() => {
         const fetchResponders = async () => {
@@ -40,7 +40,7 @@ function Responses({ pollId }: { pollId: string }) {
                     const sortedResponders = (response.response as Responders[]).sort(
                         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                     );
-                    setResponders(sortedResponders);
+                    setInitialResponders(sortedResponders);
                 }
             } catch (error) {
                 setError("Failed to fetch responders");
@@ -80,12 +80,12 @@ function Responses({ pollId }: { pollId: string }) {
                     <Inbox className="w-6 h-6 text-(--lagoon)" />
                     Responses
                     <span className="text-sm font-medium px-2.5 py-0.5 rounded-full bg-(--surface-strong) border border-(--line) text-(--sea-ink-soft) ml-2">
-                        {responders.length}
+                        {responders.length || initialResponders.length}
                     </span>
                 </h2>
             </div>
             
-            {responders.length === 0 ? (
+            {(responders && responders.length ? responders : initialResponders).length === 0 ? (
                 <div className="island-shell p-12 rounded-3xl text-center flex flex-col items-center justify-center opacity-80">
                     <div className="w-16 h-16 rounded-full bg-(--surface-strong) flex items-center justify-center mb-4">
                         <Inbox className="w-8 h-8 text-(--sea-ink-soft)" />
@@ -97,7 +97,7 @@ function Responses({ pollId }: { pollId: string }) {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {responders.map((responder, index) => {
+                    {(responders.length ? responders : initialResponders).map((responder, index) => {
                         const isAnonymous = !responder.user;
                         const userName = responder.user?.name || generateRandomName(responder._id);
                         const userEmail = responder.user?.email || `${userName.replace(' ', '').toLowerCase()}_${responder._id.substring(0, 4)}@anonymous.local`;

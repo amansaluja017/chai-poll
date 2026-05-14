@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Sun, Moon, Monitor } from 'lucide-react'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
 
@@ -73,9 +74,13 @@ export default function ThemeToggle() {
       onClick={toggleMode}
       aria-label={label}
       title={label}
-      className="rounded-full border px-3 py-1.5 text-sm font-semibold shadow-[0_8px_22px_rgba(30,90,72,0.08)] transition hover:-translate-y-0.5 bg-[var(--toggle-bg)] text-[var(--toggle-text)] border-[var(--toggle-border)] hover:text-[var(--toggle-hover-text)]"
+      className="relative flex items-center justify-center w-10 h-10 rounded-full border border-(--line) shadow-sm bg-(--surface-strong) text-(--sea-ink-soft) transition-all duration-300 hover:scale-105 hover:text-(--lagoon-deep) hover:shadow-md hover:border-(--lagoon-deep)/30 overflow-hidden group"
     >
-      {mode === 'auto' ? 'Auto' : mode === 'dark' ? 'Dark' : 'Light'}
+      <div className="relative flex items-center justify-center transition-transform duration-500 cursor-pointer">
+        {mode === 'light' && <Sun className="w-5 h-5 animate-in spin-in-90 fade-in zoom-in-95 duration-300 text-amber-500" />}
+        {mode === 'dark' && <Moon className="w-5 h-5 animate-in spin-in-90 fade-in zoom-in-95 duration-300 text-indigo-400" />}
+        {mode === 'auto' && <Monitor className="w-5 h-5 animate-in spin-in-90 fade-in zoom-in-95 duration-300" />}
+      </div>
     </button>
   )
 }

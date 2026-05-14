@@ -18,7 +18,7 @@ export const getMyPolls = async (req: Request, res: Response) => {
 
 export const getPollById = async (req: Request, res: Response) => {
 
-    const poll = await getPollByIdService(req.params.id as string);
+    const poll = await getPollByIdService(req.params.id as string, req.user?.id as string);
 
     ApiResponse.ok(res, "poll fetched successfully", poll);
 };

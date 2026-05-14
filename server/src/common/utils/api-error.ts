@@ -14,7 +14,7 @@ class ApiError extends Error {
   }
 
   static internalServerError(message = "Internal server error") {
-    return new ApiError(500, `Internal server error: ${message}`);
+    return new ApiError(500, message);
   }
   
   static badRequest(message = "bad request: invalid data") {

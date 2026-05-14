@@ -27,6 +27,9 @@ export type AuthContextType = {
     >
     loading: boolean
     updateTokens: (token: string) => Promise<void>
+
+    guestId: string | null
+    setGuestId: React.Dispatch<React.SetStateAction<string | null>>
 }
 
 export const AuthContext =
@@ -46,11 +49,14 @@ export function AuthProvider({
     const [loading, setLoading] =
         useState(true);
 
+    const [guestId, setGuestId] =
+        useState<string | null>(null);
+
     const dispatch = useDispatch();
 
     useEffect(() => {
         refreshAuth()
-    }, [])
+    }, []);
 
     const refreshAuth = async () => {
         try {
@@ -83,6 +89,8 @@ export function AuthProvider({
                 setAccessToken,
                 setUser,
                 loading,
+                guestId,
+                setGuestId
             }}
         >
             {children}

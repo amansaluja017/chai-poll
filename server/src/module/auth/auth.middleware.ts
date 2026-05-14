@@ -2,6 +2,7 @@ import ApiError from "../../common/utils/api-error.ts";
 import User from "./auth.model.ts";
 import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "../../common/utils/jwt.utils.ts";
+import mongoose from "mongoose";
 
 async function verifyJWT(req: Request, _: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
@@ -24,7 +25,7 @@ async function verifyJWT(req: Request, _: Response, next: NextFunction) {
         throw ApiError.unauthorized("Unauthorized");
     };
 
-    const user = await User.findOne({sub: decoded.id});
+    const user = await User.findById(new mongoose.Types.ObjectId(decoded.id));
 
     if (!user) {
         throw ApiError.unauthorized("Unauthorized");

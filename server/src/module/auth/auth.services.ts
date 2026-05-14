@@ -46,12 +46,8 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
         const userData = userDataResponse.data.data as UserDataResponse;
 
         const existingUser = await User.findOne({sub: userData.sub, provider: "OAuth"});
-        // console.log(existingUser, existingUser);
 
         if (!existingUser) {
-
-            const newAccessToken = generateAccessToken({id: userData.sub, email: userData.email});
-            const newRefreshToken = generateRefreshToken({id: userData.sub});
 
             const user = await User.create({
                 sub: userData.sub,
@@ -62,12 +58,17 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
                 name: userData.name,
                 iat: userData.iat,
                 exp: userData.exp,
-                refreshToken: newRefreshToken,
             });
 
             if (!user) {
                 throw ApiError.internalServerError("Failed to create user");
             };
+
+            const newAccessToken = generateAccessToken({id: user._id.toString(), email: user.email});
+            const newRefreshToken = generateRefreshToken({id: user._id.toString()});
+
+            user.refreshToken = newRefreshToken;
+            await user.save();
 
             const { _id, refreshToken, __v, ...rest } = user.toObject();
 
@@ -75,11 +76,11 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
 
         } else {
             
-            const newAccessToken = generateAccessToken({id: existingUser.sub, email: existingUser.email});
-            const newRefreshToken = generateRefreshToken({id: existingUser.sub});
+            const newAccessToken = generateAccessToken({id: existingUser._id.toString(), email: existingUser.email});
+            const newRefreshToken = generateRefreshToken({id: existingUser._id.toString()});
 
             const user = await User.findOneAndUpdate(
-                {sub: existingUser.sub, provider: "OAuth"},
+                {_id: existingUser._id},
                 {
                     refreshToken: newRefreshToken
                 },
@@ -96,7 +97,7 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
         };
     } catch (error) {
         if (error instanceof AxiosError) {
-            console.log(error.response?.data, error.message);
+            throw ApiError.badRequest(error.message);
         }
         throw ApiError.badRequest("OAuth authentication failed");
     }
@@ -104,21 +105,23 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
 
 export const refreshService = async (token: string) => {
     
+    console.log(token);
     try {
         const decode = verifyRefreshToken(token);
+        console.log(decode);
 
         if (!decode) {
-            throw ApiError.badRequest("Invalid refresh token");
+            throw ApiError.unauthorized("Invalid refresh token");
         };
         
-        const existingUser = await User.findOne({sub: decode.id, provider: "OAuth"});
+        const existingUser = await User.findById(decode.id);
 
         if (!existingUser) {
             throw ApiError.badRequest("User not found");
         };
 
-        const newRefreshToken = generateRefreshToken({id: existingUser.sub});
-        const newAccessToken = generateAccessToken({id: existingUser.sub, email: existingUser.email});
+        const newRefreshToken = generateRefreshToken({id: existingUser._id.toString()});
+        const newAccessToken = generateAccessToken({id: existingUser._id.toString(), email: existingUser.email});
 
         existingUser.refreshToken = newRefreshToken;
         await existingUser.save();
@@ -127,7 +130,6 @@ export const refreshService = async (token: string) => {
 
         return { accessToken: newAccessToken, refreshToken: newRefreshToken, user };
     } catch (error) {
-        console.log(error);
         throw ApiError.badRequest("Refresh token is invalid");
     }
 };

@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { Users, MessageSquare, AlertCircle } from "lucide-react";
 
-function Results({ pollId }: { pollId: string }) {
+function Results({ poll, pollId }: { poll: PollResponse, pollId: string }) {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
-    const [poll, setPoll] = useState<PollResponse | null>(null);
+    const [initialPoll, setInitialPoll] = useState<PollResponse>(poll);
 
     useEffect(() => {
         async function getResults() {
@@ -16,7 +16,7 @@ function Results({ pollId }: { pollId: string }) {
                 if (response.status !== 200) {
                     setError("Failed to load results");
                 } else {
-                    setPoll(response.response);
+                    setInitialPoll(response.response);
                 }
             } catch (err: any) {
                 setError(err.response?.data?.message || "Error loading results");
@@ -27,6 +27,12 @@ function Results({ pollId }: { pollId: string }) {
 
         getResults();
     }, [pollId]);
+
+    useEffect(() => {
+        if (poll) {
+            setLoading(false);
+        }
+    }, [poll]);
 
     if (loading) {
         return (
@@ -48,8 +54,6 @@ function Results({ pollId }: { pollId: string }) {
         );
     }
 
-    if (!poll) return null;
-
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Stats */}
@@ -59,8 +63,8 @@ function Results({ pollId }: { pollId: string }) {
                 <div className="flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
                     <div>
                         <h2 className="text-3xl font-extrabold text-(--sea-ink) mb-2">Results Overview</h2>
-                        <h3 className="text-xl font-bold text-(--sea-ink-soft) mb-3">{poll.title}</h3>
-                        <p className="text-(--sea-ink-soft) text-sm">{poll.description}</p>
+                        <h3 className="text-xl font-bold text-(--sea-ink-soft) mb-3">{poll?.title ?? initialPoll.title}</h3>
+                        <p className="text-(--sea-ink-soft) text-sm">{poll?.description ?? initialPoll.description}</p>
                     </div>
 
                     <div className="flex items-center gap-4 bg-(--surface-strong) px-6 py-4 rounded-2xl border border-(--line) shrink-0 shadow-sm">
@@ -69,7 +73,7 @@ function Results({ pollId }: { pollId: string }) {
                         </div>
                         <div>
                             <p className="text-xs font-bold text-(--sea-ink-soft) uppercase tracking-wider mb-1">Total Responses</p>
-                            <p className="text-3xl font-black text-(--sea-ink) leading-none">{poll.totalVotes || 0}</p>
+                            <p className="text-3xl font-black text-(--sea-ink) leading-none">{poll?.totalVotes ?? initialPoll.totalVotes ?? 0}</p>
                         </div>
                     </div>
                 </div>
@@ -77,7 +81,7 @@ function Results({ pollId }: { pollId: string }) {
 
             {/* Questions Results */}
             <div className="space-y-6">
-                {poll.questions.map((q, index) => {
+                {(poll ?? initialPoll).questions.map((q, index) => {
                     const qTotalVotes = q.options?.reduce((sum, opt) => sum + (opt.votes || 0), 0) || 0;
 
                     return (

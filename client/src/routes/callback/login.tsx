@@ -42,10 +42,9 @@ function RouteComponent() {
         sessionStorage.removeItem('oauth_state');
         setUser(user);
         updateTokens(accessToken);
-        navigate({ to: '/poll' });
+        navigate({ to: '/' });
 
       } catch (err) {
-        console.log(err);
         if (err instanceof AxiosError) {
           const message = err.response?.data?.message || err.message;
           setError(new Error(message));
@@ -76,7 +75,7 @@ function RouteComponent() {
             <p className="text-white/60">{error.message}</p>
           </div>
           <button
-            onClick={() => navigate({ to: '/login' })}
+            onClick={() => navigate({ to: '/login', search: { redirect: '/login' } })}
             className="mt-4 px-6 py-3 rounded-xl font-semibold shadow-md transition-all duration-200 hover:opacity-90 active:scale-95 cursor-pointer"
             style={{ backgroundColor: '#F2923B', color: 'white' }}
           >

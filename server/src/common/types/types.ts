@@ -50,6 +50,7 @@ type Response = {
     _id: mongoose.Types.ObjectId;
     user: mongoose.Types.ObjectId | null;
     poll: mongoose.Types.ObjectId;
+    guestId: String | null;
     response: Record<string, string>;
     createdAt: Date;
     updatedAt: Date;

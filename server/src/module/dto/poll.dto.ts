@@ -4,7 +4,7 @@ import BaseDto from "../../common/dto/base.dto.ts";
 
 class createPollDto extends BaseDto {
     static schema: z.ZodObject = z.object({
-        title: z.string().min(1).max(255),
+        title: z.string().min(5).max(255),
         description: z.string().min(1).max(255).optional(),
         questions: z.array(
             z.object({

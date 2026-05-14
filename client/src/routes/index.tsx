@@ -46,16 +46,16 @@ function HomePage() {
             </div>
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
               Create Polls in <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F2923B] to-[#f5b372]">Seconds.</span>
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-[#F2923B] to-[#f5b372]">Seconds.</span>
             </h1>
             <p className="text-xl max-w-xl mx-auto md:mx-0">
               Engage your audience, gather insights, and make data-driven decisions effortlessly. Beautiful, fast, and secure polling platform.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
-              <Link to="/poll" className="px-8 py-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(242,146,59,0.3)] hover:shadow-[0_0_30px_rgba(242,146,59,0.5)] hover:-translate-y-1 transition-all duration-300" style={{ backgroundColor: '#F2923B' }}>
+              <Link to="/poll" className="px-8 py-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(242,146,59,0.3)] hover:shadow-[0_0_30px_rgba(242,146,59,0.5)] hover:-translate-y-1 transition-all duration-300" style={{ backgroundColor: '#F2923B' , color: 'white'}}>
                 Create a Poll
               </Link>
-              <Link to="/login" className="px-8 py-4 rounded-xl font-bold border border-white/20 text-white hover:bg-white/5 transition-all duration-300">
+              <Link to="/login" search={{ redirect: '/' }} className="px-8 py-4 rounded-xl font-bold border border-white/20 text-white hover:bg-white/5 transition-all duration-300">
                 Sign In
               </Link>
             </div>

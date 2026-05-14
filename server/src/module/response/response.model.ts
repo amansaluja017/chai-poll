@@ -14,6 +14,10 @@ const responseSchema = new Schema<Response>({
     response: {
         type: Schema.Types.Mixed,
         required: true
+    },
+    guestId: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 

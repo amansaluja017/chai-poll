@@ -9,7 +9,6 @@ export const Route = createFileRoute('/_protected')({
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
-  console.log(user, "user");
   const navigate = useNavigate();
 
 
@@ -18,7 +17,7 @@ function ProtectedLayout() {
   }
 
   if (!user) {
-    navigate({ to: "/login" })
+    navigate({ to: "/login", search: { redirect: location.href } })
   }
 
   return <Outlet />
