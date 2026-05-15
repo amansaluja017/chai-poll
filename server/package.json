@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "tsc-watch --onSuccess \"node index.ts\"",
-    "build": "tsc",
+    "build": "bun build ./index.ts --target=node --outdir=./dist",
     "start": "node dist/index.js"
   },
   "peerDependencies": {
