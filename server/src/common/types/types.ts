@@ -41,7 +41,6 @@ type User = {
     name: string,
     iat: number,
     exp: number,
-    refreshToken: string,
     createdAt: Date,
     updatedAt: Date
 };

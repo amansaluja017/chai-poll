@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import apiClient from "../services/apiClient.service.ts";
-import { Mail, Clock, Inbox } from "lucide-react";
+import { Mail, Clock, Inbox, ChevronDown, ChevronUp } from "lucide-react";
 
 export interface Responders {
     _id: string;
@@ -29,6 +29,7 @@ function Responses({ pollId, responders }: { pollId: string, responders: Respond
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [initialResponders, setInitialResponders] = useState<Responders[]>([]);
+    const [showAll, setShowAll] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchResponders = async () => {
@@ -96,8 +97,11 @@ function Responses({ pollId, responders }: { pollId: string, responders: Respond
                     </p>
                 </div>
             ) : (
-                <div className="space-y-4">
-                    {(responders.length ? responders : initialResponders).map((responder, index) => {
+                <div className="space-y-6">
+                    <div className="space-y-4">
+                        {(responders.length ? responders : initialResponders)
+                            .slice(0, showAll ? undefined : 10)
+                            .map((responder, index) => {
                         const isAnonymous = !responder.user;
                         const userName = responder.user?.name || generateRandomName(responder._id);
                         const userEmail = responder.user?.email || `${userName.replace(' ', '').toLowerCase()}_${responder._id.substring(0, 4)}@anonymous.local`;
@@ -138,6 +142,26 @@ function Responses({ pollId, responders }: { pollId: string, responders: Respond
                         </div>
                         );
                     })}
+                    </div>
+
+                    {(responders.length ? responders : initialResponders).length > 10 && (
+                        <div className="flex justify-center pt-2">
+                            <button 
+                                onClick={() => setShowAll(!showAll)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-(--surface-strong) border border-(--line) hover:border-(--lagoon) hover:text-(--lagoon) text-(--sea-ink) font-semibold rounded-full transition-all shadow-sm cursor-pointer"
+                            >
+                                {showAll ? (
+                                    <>
+                                        Show Less <ChevronUp className="w-4 h-4" />
+                                    </>
+                                ) : (
+                                    <>
+                                        View All {(responders.length ? responders : initialResponders).length} Responses <ChevronDown className="w-4 h-4" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -11,5 +11,6 @@ router.get("/my-polls", requireAuth, pollController.getMyPolls);
 router.get("/:id", pollController.getPollById);
 router.post("/response/:id", validate(pollDto.responsePollDto), pollController.responsePoll);
 router.get("/responders/:id", requireAuth, pollController.getResponders);
+router.patch("/publish/:id", requireAuth, pollController.publishPoll);
 
 export default router;

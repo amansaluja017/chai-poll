@@ -47,14 +47,14 @@ export default function Header() {
   const handleLogout = async () => {
     try {
       await apiClient.logout();
-      
+
       setUser(null);
       setAccessToken(null);
       dispatch(logout());
-      
+
       navigate({ to: '/' });
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -62,11 +62,11 @@ export default function Header() {
     <header className={`fixed top-0 left-0 right-0 z-50 flex transition-all duration-500 ease-in-out ${isCollapsed ? 'justify-end pt-4 px-4 sm:px-8' : 'justify-center pt-8 px-6'}`}>
       <div
         className={`flex items-center relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isCollapsed
-            ? 'justify-between w-14 h-14 bg-(--surface) border border-(--line) backdrop-blur-md shadow-lg rounded-full cursor-pointer hover:scale-105 group px-0 py-0'
-            : `justify-between w-full max-w-5xl ${isScrolled
-              ? 'bg-(--header-bg) border border-(--line) shadow-[0_8px_30px_rgba(0,0,0,0.1)] backdrop-blur-xl rounded-full px-6 py-3 h-[72px]'
-              : 'bg-(--surface) border border-(--line) backdrop-blur-md shadow-lg rounded-full px-8 py-4 h-[88px]'
-            }`
+          ? 'justify-between w-14 h-14 bg-(--surface) border border-(--line) backdrop-blur-md shadow-lg rounded-full cursor-pointer hover:scale-105 group px-0 py-0'
+          : `justify-between w-full max-w-5xl ${isScrolled
+            ? 'bg-(--header-bg) border border-(--line) shadow-[0_8px_30px_rgba(0,0,0,0.1)] backdrop-blur-xl rounded-full px-6 py-3 h-[72px]'
+            : 'bg-(--surface) border border-(--line) backdrop-blur-md shadow-lg rounded-full px-8 py-4 h-[88px]'
+          }`
           }`}
         onClick={isCollapsed ? () => setIsCollapsed(false) : undefined}
       >
@@ -76,8 +76,8 @@ export default function Header() {
             to="/"
             onClick={(e) => { if (isCollapsed) e.preventDefault(); }}
             className={`flex items-center justify-center shrink-0 transition-all duration-500 ${isCollapsed
-                ? 'w-14 h-14'
-                : 'w-10 h-10 rounded-full bg-(--surface-strong) border border-(--line) hover:scale-110 group-hover:scale-110'
+              ? 'w-14 h-14'
+              : 'w-10 h-10 rounded-full bg-(--surface-strong) border border-(--line) hover:scale-110 group-hover:scale-110'
               }`}
           >
             <Flame className={`transition-all duration-500 text-(--lagoon) ${isCollapsed ? 'w-6 h-6 animate-pulse group-hover:scale-110' : 'w-5 h-5'}`} />
@@ -92,9 +92,15 @@ export default function Header() {
           <Link to="/" className="text-sm font-medium text-(--sea-ink-soft) hover:text-(--sea-ink) transition-colors pointer-events-auto" activeProps={{ className: 'text-(--sea-ink)' }}>
             Home
           </Link>
-          <Link to="/poll" className="text-sm font-medium text-(--sea-ink-soft) hover:text-(--sea-ink) transition-colors pointer-events-auto" activeProps={{ className: 'text-(--sea-ink)' }}>
-            Create Poll
-          </Link>
+          {user && (
+            <>
+              <Link to="/poll" className="text-sm font-medium text-(--sea-ink-soft) hover:text-(--sea-ink) transition-colors pointer-events-auto" activeProps={{ className: 'text-(--sea-ink)' }}>
+                Create Poll
+              </Link>
+              <Link to="/dashboard" className="text-sm font-medium text-(--sea-ink-soft) hover:text-(--sea-ink) transition-colors pointer-events-auto" activeProps={{ className: 'text-(--sea-ink)' }}>
+                Dashboard
+              </Link></>
+          )}
         </nav>
 
         {/* Right: Actions */}
@@ -105,7 +111,7 @@ export default function Header() {
 
           {user ? (
             <div className="flex items-center gap-3">
-              <button onClick={() => navigate({to: "/profile"})} className="w-10 h-10 rounded-full bg-(--surface-strong) border border-(--line) flex items-center justify-center text-(--sea-ink-soft) hover:text-(--sea-ink) hover:bg-(--surface) transition-all cursor-pointer">
+              <button onClick={() => navigate({ to: "/profile" })} className="w-10 h-10 rounded-full bg-(--surface-strong) border border-(--line) flex items-center justify-center text-(--sea-ink-soft) hover:text-(--sea-ink) hover:bg-(--surface) transition-all cursor-pointer">
                 <UserIcon className="w-5 h-5" />
               </button>
               <button
@@ -117,9 +123,9 @@ export default function Header() {
               </button>
             </div>
           ) : (
-            <Link 
-              to="/login" 
-              search={{ redirect: "/" }} 
+            <Link
+              to="/login"
+              search={{ redirect: "/" }}
               className="group flex items-center justify-center gap-2 px-6 py-2 rounded-full text-sm font-bold text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(242,146,59,0.3)] hover:shadow-[0_0_30px_rgba(242,146,59,0.5)]"
               style={{ backgroundColor: '#F2923B', color: 'white' }}
             >

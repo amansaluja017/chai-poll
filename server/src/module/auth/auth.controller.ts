@@ -65,7 +65,7 @@ export const logout = async (req: Request, res: Response) => {
         throw ApiError.badRequest("No refresh token provided");
     };
 
-    await logoutService(req.user!);
+    await logoutService(req.cookies.refreshToken);
 
     res.clearCookie("refreshToken");
 

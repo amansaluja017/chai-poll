@@ -81,12 +81,4 @@ const pollSchema = new mongoose.Schema<Poll>({
 
 pollSchema.index({ title: 1 });
 
-pollSchema.pre("validate", function () {
-    this.questions.forEach((question) => {
-        if (question.questionType === "CHOICE" && question.options?.length < 2) {
-            throw new Error("Options must be at least 2");
-        }
-    });
-});
-
 export default mongoose.model<Poll>("Poll", pollSchema);

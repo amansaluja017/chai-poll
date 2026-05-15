@@ -14,6 +14,7 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CallbackLoginRouteImport } from './routes/callback/login'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
+import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ResponsePollIdIndexRouteImport } from './routes/response/$pollId/index'
 import { Route as ProtectedPollIndexRouteImport } from './routes/_protected/poll/index'
 import { Route as ProtectedPollPollIdIndexRouteImport } from './routes/_protected/poll/$pollId/index'
@@ -43,6 +44,11 @@ const ProtectedProfileRoute = ProtectedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ResponsePollIdIndexRoute = ResponsePollIdIndexRouteImport.update({
   id: '/response/$pollId/',
   path: '/response/$pollId/',
@@ -69,6 +75,7 @@ const ProtectedPollPollIdResultsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
   '/callback/login': typeof CallbackLoginRoute
   '/poll/': typeof ProtectedPollIndexRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof ProtectedDashboardRoute
   '/profile': typeof ProtectedProfileRoute
   '/callback/login': typeof CallbackLoginRoute
   '/poll': typeof ProtectedPollIndexRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
   '/login': typeof LoginRoute
+  '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/profile': typeof ProtectedProfileRoute
   '/callback/login': typeof CallbackLoginRoute
   '/_protected/poll/': typeof ProtectedPollIndexRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/dashboard'
     | '/profile'
     | '/callback/login'
     | '/poll/'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/dashboard'
     | '/profile'
     | '/callback/login'
     | '/poll'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_protected'
     | '/login'
+    | '/_protected/dashboard'
     | '/_protected/profile'
     | '/callback/login'
     | '/_protected/poll/'
@@ -177,6 +189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedProfileRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/dashboard': {
+      id: '/_protected/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/response/$pollId/': {
       id: '/response/$pollId/'
       path: '/response/$pollId'
@@ -209,6 +228,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProtectedRouteChildren {
+  ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedProfileRoute: typeof ProtectedProfileRoute
   ProtectedPollIndexRoute: typeof ProtectedPollIndexRoute
   ProtectedPollPollIdResultsRoute: typeof ProtectedPollPollIdResultsRoute
@@ -216,6 +236,7 @@ interface ProtectedRouteChildren {
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedProfileRoute: ProtectedProfileRoute,
   ProtectedPollIndexRoute: ProtectedPollIndexRoute,
   ProtectedPollPollIdResultsRoute: ProtectedPollPollIdResultsRoute,

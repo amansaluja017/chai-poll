@@ -33,6 +33,7 @@ export interface PollResponse {
     }[];
     textResponses: string[];
   }[];
+  isPublished: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -83,6 +84,12 @@ const apiClient = {
     const response = await api.get(`${import.meta.env.VITE_API_URL}/api/v1/poll/responders/${id}`);
     return { response: response.data.data, status: response.status };
   },
+
+  publishPoll: async (id: string) => {
+    const response = await api.patch(`${import.meta.env.VITE_API_URL}/api/v1/poll/publish/${id}`);
+
+    return {status: response.status};
+  }
 };
 
 export default apiClient;

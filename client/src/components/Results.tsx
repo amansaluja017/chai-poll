@@ -1,12 +1,20 @@
 import apiClient, { type PollResponse } from "#/services/apiClient.service";
 import { useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
-import { Users, MessageSquare, AlertCircle } from "lucide-react";
+import { Users, MessageSquare, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 function Results({ poll, pollId }: { poll: PollResponse, pollId: string }) {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [initialPoll, setInitialPoll] = useState<PollResponse>(poll);
+    const [expandedTextQuestions, setExpandedTextQuestions] = useState<Record<string, boolean>>({});
+
+    const toggleExpandText = (questionId: string) => {
+        setExpandedTextQuestions(prev => ({
+            ...prev,
+            [questionId]: !prev[questionId]
+        }));
+    };
 
     useEffect(() => {
         async function getResults() {
@@ -59,7 +67,7 @@ function Results({ poll, pollId }: { poll: PollResponse, pollId: string }) {
             {/* Header Stats */}
             <div className="bg-(--surface) border border-(--line) rounded-3xl p-6 md:p-8 shadow-xl backdrop-blur-sm relative overflow-hidden">
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#F2923B] rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-                
+
                 <div className="flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
                     <div>
                         <h2 className="text-3xl font-extrabold text-(--sea-ink) mb-2">Results Overview</h2>
@@ -109,7 +117,7 @@ function Results({ poll, pollId }: { poll: PollResponse, pollId: string }) {
                                                 {/* Progress Bar Background */}
                                                 <div className="w-full h-3 bg-(--surface-strong) border border-(--line) rounded-full overflow-hidden">
                                                     {/* Progress Bar Fill */}
-                                                    <div 
+                                                    <div
                                                         className="h-full bg-linear-to-r from-[#F2923B] to-[#f4a760] rounded-full transition-all duration-1000 ease-out"
                                                         style={{ width: `${percentage}%` }}
                                                     ></div>
@@ -131,13 +139,33 @@ function Results({ poll, pollId }: { poll: PollResponse, pollId: string }) {
                                             <p className="text-(--sea-ink-soft) font-medium">No text responses yet.</p>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {q.textResponses.map((text, i) => (
-                                                <div key={i} className="bg-(--surface-strong) border border-(--line) p-4 rounded-xl shadow-sm flex items-start gap-3 hover:border-(--lagoon) transition-colors">
-                                                    <MessageSquare className="w-5 h-5 text-(--lagoon) shrink-0 mt-0.5" />
-                                                    <p className="text-(--sea-ink) text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {q.textResponses.slice(0, expandedTextQuestions[q._id] ? undefined : 10).map((text, i) => (
+                                                    <div key={i} className="bg-(--surface-strong) border border-(--line) p-4 rounded-xl shadow-sm flex items-start gap-3 hover:border-(--lagoon) transition-colors">
+                                                        <MessageSquare className="w-5 h-5 text-(--lagoon) shrink-0 mt-0.5" />
+                                                        <p className="text-(--sea-ink) text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {q.textResponses.length > 10 && (
+                                                <div className="flex justify-center pt-2">
+                                                    <button 
+                                                        onClick={() => toggleExpandText(q._id)}
+                                                        className="flex items-center gap-2 px-6 py-2.5 bg-(--surface-strong) border border-(--line) hover:border-(--lagoon) hover:text-(--lagoon) text-(--sea-ink) font-semibold rounded-full transition-all shadow-sm cursor-pointer"
+                                                    >
+                                                        {expandedTextQuestions[q._id] ? (
+                                                            <>
+                                                                Show Less <ChevronUp className="w-4 h-4" />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                View All {q.textResponses.length} Answers <ChevronDown className="w-4 h-4" />
+                                                            </>
+                                                        )}
+                                                    </button>
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
                                     )}
                                 </div>

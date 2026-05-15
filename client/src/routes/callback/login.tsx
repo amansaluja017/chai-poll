@@ -42,7 +42,7 @@ function RouteComponent() {
         sessionStorage.removeItem('oauth_state');
         setUser(user);
         updateTokens(accessToken);
-        navigate({ to: '/' });
+        navigate({ to: "/dashboard", replace: true });
 
       } catch (err) {
         if (err instanceof AxiosError) {

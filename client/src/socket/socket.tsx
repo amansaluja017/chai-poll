@@ -20,15 +20,13 @@ export function SocketProvider({ children }: {children: ReactNode}) {
 
     if (loading) return;
 
-    const socketInstance = io("http://localhost:8000", {
+    const socketInstance = io(import.meta.env.VITE_API_URL, {
       auth: {
         token,
         guestId
       },
       autoConnect: false
     });
-
-    console.log(token, "token");
 
     setSocket(socketInstance)
 

@@ -1,7 +1,8 @@
 import ApiError from "../../common/utils/api-error.ts";
 import Poll from "./poll.schema.ts";
-import mongoose, { isValidObjectId, type ObjectId, type StrictCondition } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import Response from "../response/response.model.ts";
+import { redis } from "../../common/redis/redis.ts";
 
 interface CreatePoll {
     title: String;
@@ -48,6 +49,8 @@ export const createPollService = async (pollData: CreatePoll) => {
             throw ApiError.internalServerError("Failed to create poll");
         };
 
+        await redis.set(`poll:${poll._id.toString()}`, JSON.stringify(poll), { EX: 60 * 60 * 24 * 1 });
+
         return poll;
     } catch (error: unknown) {
         if (error instanceof ApiError) {
@@ -60,6 +63,7 @@ export const createPollService = async (pollData: CreatePoll) => {
 export const getMyPollsService = async ({ id }: { id: string }) => {
 
     try {
+
         const polls = await Poll.find({ createdBy: new mongoose.Types.ObjectId(id) });
 
         return polls;
@@ -73,11 +77,20 @@ export const getMyPollsService = async ({ id }: { id: string }) => {
 
 export const getPollByIdService = async (id: string, userId?: string) => {
     try {
+
+        const cachedPoll = await redis.get(`poll:${id}`);
+
+        if (cachedPoll) {
+            return JSON.parse(cachedPoll);
+        };
+
         const poll = await Poll.findById(new mongoose.Types.ObjectId(id));
 
         if (!poll) {
             throw ApiError.notFound("Poll not found");
         };
+
+        await redis.set(`poll:${id}`, JSON.stringify(poll), { EX: 60 * 60 * 24 * 1 });
 
         return poll;
     } catch (error) {
@@ -88,7 +101,9 @@ export const getPollByIdService = async (id: string, userId?: string) => {
     }
 };
 
-export const responsePollService = async (id: string, responseData: Record<string, string>, userId: string) => {
+export const responsePollService = async (id: string, responseData: {responses: Record<string, string>, guestId: string }, userId: string) => {
+    const { responses, guestId } = responseData;
+
     try {
         const poll = await Poll.findById(new mongoose.Types.ObjectId(id));
 
@@ -100,22 +115,32 @@ export const responsePollService = async (id: string, responseData: Record<strin
             throw ApiError.unauthorized("User is not authenticated");
         };
 
-        // const existedResponse = await Response.findOne({ poll: new mongoose.Types.ObjectId(id), user: new mongoose.Types.ObjectId(userId) });
+        async function alreadyVote(filter: { poll: mongoose.Types.ObjectId, user?: mongoose.Types.ObjectId, guestId?: string }) {
+            const existedResponse = await Response.findOne(filter);
 
-        // if (existedResponse) {
-        //     throw ApiError.badRequest("You have already responded to this poll");
-        // };
+            if (existedResponse) {
+                throw ApiError.badRequest("You have already responded to this poll");
+            };
+        }
+
+        if (poll?.isAuthenticationRequired && isValidObjectId(userId)) {
+            await alreadyVote({ poll: new mongoose.Types.ObjectId(id), user: new mongoose.Types.ObjectId(userId) })
+
+        } else if (!poll?.isAuthenticationRequired && guestId) {
+            await alreadyVote({ poll: new mongoose.Types.ObjectId(id), guestId });
+        };
+
 
         const requiredQuestions = poll?.questions.filter((question) => question.isRequired);
-        const responseQuestions = Object.keys(responseData);
-        
+        const responseQuestions = Object.keys(responses!);
+
         for (const question of requiredQuestions!) {
             if (!responseQuestions.includes(question._id.toString())) {
                 throw ApiError.badRequest("Please answer all required questions");
             };
         };
 
-        for (const [key, value] of Object.entries(responseData)) {
+        for (const [key, value] of Object.entries(responses!)) {
             const question = poll?.questions.find((question) => question._id.toString() === key);
 
             if (!question) {
@@ -146,8 +171,8 @@ export const responsePollService = async (id: string, responseData: Record<strin
         const response = await Response.create({
             user: poll.isAuthenticationRequired ? new mongoose.Types.ObjectId(userId) : null,
             poll: new mongoose.Types.ObjectId(id),
-            response: responseData,
-            guestId: poll.isAuthenticationRequired ? null : userId
+            response: responses,
+            guestId: poll.isAuthenticationRequired ? null : guestId
         });
 
         if (!response) {
@@ -156,12 +181,14 @@ export const responsePollService = async (id: string, responseData: Record<strin
 
         await poll.save();
 
+        await redis.set(`poll:${id}`, JSON.stringify(poll), { EX: 60 * 60 * 24 * 1 });
+
         return poll;
     } catch (error) {
         if (error instanceof ApiError) {
-            throw ApiError.internalServerError(error.message);
+            throw error;
         }
-        throw ApiError.internalServerError("Failed to get poll");
+        throw ApiError.internalServerError("Failed to respond to poll");
     }
 };
 
@@ -176,6 +203,8 @@ export const publishResultsService = async (id: string) => {
         poll.isCompleted = true;
         poll.isPublished = true;
         await poll.save();
+
+        await redis.set(`poll:${id}`, JSON.stringify(poll), { EX: 60 * 60 * 24 * 1 });
 
         return poll;
     } catch (error) {

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react';
-import { Edit, Share2, Copy, CheckCircle2, Clock, BarChart3, UploadCloud, Radio, AlignLeft } from 'lucide-react';
+import { Share2, Copy, CheckCircle2, Clock, BarChart3, UploadCloud, Radio, AlignLeft } from 'lucide-react';
 import apiClient, { type PollResponse } from '#/services/apiClient.service';
 import { AxiosError } from 'axios';
 import { Skeleton } from '#/components/ui/skeleton';
@@ -17,16 +17,22 @@ function RouteComponent() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [poll, setPoll] = useState<PollResponse>();
+  const [publish, setPublish] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
-  const shareLink = `http://localhost:3000/response/${pollId}`;
+  const shareLink = `${import.meta.env.VITE_CLIENT_URL}/response/${pollId}`;
 
   useEffect(() => {
-    if (!poll) return;
+    if (!poll || publish) return;
     const expiryDate = new Date(poll.expiry);
 
     const calculateTimeLeft = () => {
+
+      if (poll?.isCompleted) {
+        return 'Completed';
+      }
+
       const difference = expiryDate.getTime() - new Date().getTime();
       if (difference > 0) {
         const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
@@ -54,6 +60,7 @@ function RouteComponent() {
 
         if (response.status === 200) {
           setPoll(response.response);
+          setPublish(response.response.isPublished);
         };
 
       } catch (error) {
@@ -75,6 +82,20 @@ function RouteComponent() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  async function handlePublish() {
+    try {
+      const response = await apiClient.publishPoll(pollId);
+
+      if (response.status === 200) {
+        setPublish(true);
+      }
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        setError(error.message);
+      }
+    }
+  }
 
   const getStatus = () => {
     if (poll?.isCompleted && timeLeft === 'Expired') return { label: 'Results Published', color: 'bg-green-500/10 text-green-500 border-green-500/20 shadow-green-500/10' };
@@ -110,8 +131,6 @@ function RouteComponent() {
     );
   }
 
-  if (!poll) return null;
-
   return (
     <main className="min-h-screen p-6 md:p-12 font-sans" style={{ paddingTop: '150px' }}>
       <div className="max-w-5xl mx-auto space-y-8">
@@ -133,28 +152,29 @@ function RouteComponent() {
             </div>
 
             {/* Actions */}
-            <div className="shrink-0 flex flex-col gap-5 items-end"> 
+            <div className="shrink-0 flex flex-col gap-5 items-end">
 
               {/* Timer Panel */}
-              <div className='flex justify-center items-center gap-2'>
-                <div className="w-5 h-5 rounded-full bg-[#F2923B]/10 flex items-center justify-center shrink-0">
-                  <Clock className="w-6 h-6 text-[#F2923B]" />
+              {!publish && (
+                <div className='flex justify-center items-center gap-2'>
+                  <div className="w-5 h-5 rounded-full bg-[#F2923B]/10 flex items-center justify-center shrink-0">
+                    <Clock className="w-6 h-6 text-[#F2923B]" />
+                  </div>
+                  <p className="text-md font-bold text-(--sea-ink) tabular-nums">{timeLeft}</p>
                 </div>
-                <p className="text-md font-bold text-(--sea-ink) tabular-nums">{timeLeft}</p>
-              </div>
+              )}
 
               <div className='flex gap-3 items-center'>
-                <button className="p-3 bg-(--surface-strong) border border-(--line) rounded-xl text-(--sea-ink-soft) hover:text-[#F2923B] hover:border-[#F2923B]/30 transition-all cursor-pointer" title="Edit Poll">
-                  <Edit className="w-5 h-5" />
-                </button>
-                <button onClick={() => navigate({to: `/poll/${pollId}/results`})} className="flex items-center gap-2 px-5 py-3 bg-(--surface-strong) border border-(--line) rounded-xl text-(--sea-ink) font-semibold hover:border-(--lagoon) transition-all shadow-sm cursor-pointer">
+                <button onClick={() => navigate({ to: `/poll/${pollId}/results` })} className="flex items-center gap-2 px-5 py-3 bg-(--surface-strong) border border-(--line) rounded-xl text-(--sea-ink) font-semibold hover:border-(--lagoon) transition-all shadow-sm cursor-pointer">
                   <BarChart3 className="w-5 h-5 text-(--lagoon)" />
                   View Results
                 </button>
-                <button className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(242,146,59,0.2)] transition-all duration-200 hover:shadow-[0_0_30px_rgba(242,146,59,0.4)] hover:-translate-y-0.5 active:scale-95 cursor-pointer text-white" style={{ backgroundColor: '#F2923B' }}>
-                  <UploadCloud className="w-5 h-5" />
-                  Publish
-                </button>
+                {!publish && (
+                  <button onClick={handlePublish} className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(242,146,59,0.2)] transition-all duration-200 hover:shadow-[0_0_30px_rgba(242,146,59,0.4)] hover:-translate-y-0.5 active:scale-95 cursor-pointer text-white" style={{ backgroundColor: '#F2923B' }}>
+                    <UploadCloud className="w-5 h-5" />
+                    Publish
+                  </button>
+                )}
               </div>
             </div>
           </div>

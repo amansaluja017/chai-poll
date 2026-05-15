@@ -2,6 +2,7 @@ import axios, { AxiosError } from "axios";
 import ApiError from "../../common/utils/api-error.ts";
 import User from "./auth.model.ts";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../common/utils/jwt.utils.ts";
+import { redis } from "../../common/redis/redis.ts";
 
 interface UserDataResponse {
     iss: string,
@@ -47,6 +48,8 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
 
         const existingUser = await User.findOne({sub: userData.sub, provider: "OAuth"});
 
+        const sessionId = crypto.randomUUID();
+
         if (!existingUser) {
 
             const user = await User.create({
@@ -65,35 +68,20 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
             };
 
             const newAccessToken = generateAccessToken({id: user._id.toString(), email: user.email});
-            const newRefreshToken = generateRefreshToken({id: user._id.toString()});
+            const newRefreshToken = generateRefreshToken({id: user._id.toString(), sessionId});
 
-            user.refreshToken = newRefreshToken;
-            await user.save();
+            await redis.set(`session:${sessionId}`, JSON.stringify(user), {EX: 60 * 60 * 24 * 1});
 
-            const { _id, refreshToken, __v, ...rest } = user.toObject();
-
-            return { accessToken: newAccessToken, refreshToken: newRefreshToken, idToken, user: rest }
+            return { accessToken: newAccessToken, refreshToken: newRefreshToken, idToken, user }
 
         } else {
             
             const newAccessToken = generateAccessToken({id: existingUser._id.toString(), email: existingUser.email});
-            const newRefreshToken = generateRefreshToken({id: existingUser._id.toString()});
+            const newRefreshToken = generateRefreshToken({id: existingUser._id.toString(), sessionId});
 
-            const user = await User.findOneAndUpdate(
-                {_id: existingUser._id},
-                {
-                    refreshToken: newRefreshToken
-                },
-                { new: true }
-            );
+            await redis.set(`session:${sessionId}`, JSON.stringify(existingUser), {EX: 60 * 60 * 24 * 1});
 
-            if (!user) {
-                throw ApiError.internalServerError("Failed to create user");
-            }
-
-            const { _id, refreshToken, __v, ...rest } = user.toObject();
-
-            return { accessToken: newAccessToken, refreshToken: newRefreshToken, idToken, user: rest }
+            return { accessToken: newAccessToken, refreshToken: newRefreshToken, idToken, user: existingUser }
         };
     } catch (error) {
         if (error instanceof AxiosError) {
@@ -105,42 +93,50 @@ export const getTokenService = async (body: {code: string, redirect_url: string,
 
 export const refreshService = async (token: string) => {
     
-    console.log(token);
     try {
         const decode = verifyRefreshToken(token);
-        console.log(decode);
 
         if (!decode) {
             throw ApiError.unauthorized("Invalid refresh token");
         };
-        
-        const existingUser = await User.findById(decode.id);
+
+        const existingUser = await redis.get(`session:${decode.sessionId}`);
 
         if (!existingUser) {
             throw ApiError.badRequest("User not found");
         };
 
-        const newRefreshToken = generateRefreshToken({id: existingUser._id.toString()});
-        const newAccessToken = generateAccessToken({id: existingUser._id.toString(), email: existingUser.email});
+        const parsedUser = JSON.parse(existingUser);
+        const sessionId = crypto.randomUUID();
 
-        existingUser.refreshToken = newRefreshToken;
-        await existingUser.save();
+        const newRefreshToken = generateRefreshToken({id: parsedUser._id.toString(), sessionId});
+        const newAccessToken = generateAccessToken({id: parsedUser._id.toString(), email: parsedUser.email});
 
-        const {refreshToken, ...user} = existingUser.toObject();
+        await redis.set(`session:${sessionId}`, JSON.stringify(parsedUser), {EX: 60 * 60 * 24 * 1});
+        await redis.del(`session:${decode.sessionId}`);
 
-        return { accessToken: newAccessToken, refreshToken: newRefreshToken, user };
+        const { _id, __v, ...rest } = parsedUser;
+
+        return { accessToken: newAccessToken, refreshToken: newRefreshToken, user: rest };
     } catch (error) {
         throw ApiError.badRequest("Refresh token is invalid");
     }
 };
 
-export const logoutService = async ({id}: {id: string}) => {
-    const user = await User.findByIdAndUpdate(id, {
-        refreshToken: null
-    }, {runValidators: false})
+export const logoutService = async (token: string) => {
+    
+    const decode = verifyRefreshToken(token);
 
-    if (!user) {
+    if (!decode) {
+        throw ApiError.unauthorized("Invalid refresh token");
+    };
+
+    const delCount = await redis.del(`session:${decode.sessionId}`);
+    
+    if (delCount === 0) {
         throw ApiError.badRequest("User not found");
     };
+
+    return { message: "User logged out successfully" };
 
 }

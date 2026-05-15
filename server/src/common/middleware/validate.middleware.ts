@@ -4,6 +4,7 @@ import type BaseDto from "../dto/base.dto.ts";
 
 const validate = (Dtoclass: typeof BaseDto) => {
   return (req: Request, _: Response, next: NextFunction) => {
+    console.log(req.body)
     const { error, data } = Dtoclass.validate(req.body);
     
     if (error) {

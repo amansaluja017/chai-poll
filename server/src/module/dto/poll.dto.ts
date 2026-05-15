@@ -20,7 +20,10 @@ class createPollDto extends BaseDto {
 }
 
 class responsePollDto extends BaseDto {
-    static schema: z.ZodRecord<z.ZodString, z.ZodString> = z.record(z.string(), z.string());
+    static schema: z.ZodObject = z.object({
+        responses: z.record(z.string(), z.string()),
+        guestId: z.string().optional(),
+    });
 }
 
 export { createPollDto, responsePollDto };

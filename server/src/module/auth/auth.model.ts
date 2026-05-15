@@ -33,10 +33,6 @@ const userSchema = new mongoose.Schema<User>({
     exp: {
         type: Number,
         required: true
-    },
-    refreshToken: {
-        type: String,
-        required: true
     }
 });
 

@@ -5,6 +5,12 @@ import serverInit from "./src/server.ts";
 import connectToDb from "./src/common/config/db.ts";
 import initializeSocket from "./socket.ts";
 
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Optionally exit the process
+    // process.exit(1);
+});
+
 function main() {
     const server = createServer(serverInit());
 

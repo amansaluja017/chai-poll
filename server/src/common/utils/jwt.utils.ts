@@ -8,7 +8,7 @@ export const generateAccessToken = (payload: {id: string, email: string}): strin
   return jwt.sign(payload, process.env.AUTH_ACCESS_SECRET!, { expiresIn: process.env.AUTH_ACCESS_EXPIRE! || "15m" } as SignOptions);
 };
 
-export const generateRefreshToken = (payload: {id: string}): string => {
+export const generateRefreshToken = (payload: {id: string, sessionId: string}): string => {
   return jwt.sign(payload, process.env.AUTH_REFRESH_SECRET!, { expiresIn: process.env.AUTH_REFRESH_EXPIRE! || "1d" } as SignOptions);
 };
 
