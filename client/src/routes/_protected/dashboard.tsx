@@ -83,7 +83,7 @@ function RouteComponent() {
                 result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                 break;
             case "Published":
-                result = result.filter(poll => poll.isPublished);
+                result = result.filter(poll => poll.status === 'published');
                 result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                 break;
         }

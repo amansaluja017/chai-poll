@@ -101,13 +101,13 @@ export const getPollByIdService = async (id: string, userId?: string) => {
     }
 };
 
-export const responsePollService = async (id: string, responseData: {responses: Record<string, string>, guestId: string }, userId: string) => {
+export const responsePollService = async (id: string, responseData: { responses: Record<string, string>, guestId: string }, userId: string) => {
     const { responses, guestId } = responseData;
 
     try {
         const poll = await Poll.findById(new mongoose.Types.ObjectId(id));
 
-        if (poll?.isCompleted || poll?.expiry! <= new Date()) {
+        if (poll?.status === "completed" || poll?.expiry! <= new Date()) {
             throw ApiError.badRequest("Poll is closed or already completed");
         };
 
@@ -192,17 +192,13 @@ export const responsePollService = async (id: string, responseData: {responses: 
     }
 };
 
-export const publishResultsService = async (id: string) => {
+export const updateStatusService = async (id: string, status: "live" | "completed" | "published") => {
     try {
-        const poll = await Poll.findById(new mongoose.Types.ObjectId(id));
+        const poll = await Poll.findByIdAndUpdate(new mongoose.Types.ObjectId(id), { status: status }, { new: true, runValidators: true });
 
         if (!poll) {
             throw ApiError.notFound("Poll not found");
         };
-
-        poll.isCompleted = true;
-        poll.isPublished = true;
-        await poll.save();
 
         await redis.set(`poll:${id}`, JSON.stringify(poll), { EX: 60 * 60 * 24 * 1 });
 

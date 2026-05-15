@@ -7,7 +7,6 @@ type Poll = {
     createdBy: mongoose.Types.ObjectId;
     totalVotes: Number;
     expiry: Date;
-    isCompleted: Boolean;
     isAuthenticationRequired: Boolean;
     questions: [
         {
@@ -25,7 +24,7 @@ type Poll = {
             textResponses: String[];
         }
     ];
-    isPublished: Boolean;
+    status: "live" | "completed" | "published";
     createdAt: Date;
     updatedAt: Date;
 };

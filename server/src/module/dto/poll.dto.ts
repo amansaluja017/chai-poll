@@ -26,4 +26,10 @@ class responsePollDto extends BaseDto {
     });
 }
 
-export { createPollDto, responsePollDto };
+class updateStatusDto extends BaseDto {
+    static schema: z.ZodObject = z.object({
+        status: z.enum(["live", "completed", "published"]),
+    });
+};
+
+export { createPollDto, responsePollDto, updateStatusDto };

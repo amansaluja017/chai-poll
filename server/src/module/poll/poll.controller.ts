@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { createPollService, getMyPollsService, getPollByIdService, getRespondersService, publishResultsService, responsePollService } from "./poll.services.ts";
+import { createPollService, getMyPollsService, getPollByIdService, getRespondersService, responsePollService, updateStatusService } from "./poll.services.ts";
 import ApiResponse from "../../common/utils/api-response.ts";
 
 export const createPoll = async (req: Request, res: Response) => {
@@ -37,9 +37,9 @@ export const getResponders = async (req: Request, res: Response) => {
     ApiResponse.ok(res, "responders fetched successfully", response);
 };
 
-export const publishPoll = async (req: Request, res: Response) => {
+export const updateStatus = async (req: Request, res: Response) => {
 
-    const response = await publishResultsService(req.params.id as string);
+    const response = await updateStatusService(req.params.id as string, req.body.status);
 
-    ApiResponse.ok(res, "poll publish successfully");
+    ApiResponse.ok(res, "poll status updated successfully");
 };

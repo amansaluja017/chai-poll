@@ -1,9 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react';
-import { Share2, Copy, CheckCircle2, Clock, BarChart3, UploadCloud, Radio, AlignLeft } from 'lucide-react';
+import { Share2, Copy, CheckCircle2, BarChart3, UploadCloud, Radio, AlignLeft } from 'lucide-react';
 import apiClient, { type PollResponse } from '#/services/apiClient.service';
 import { AxiosError } from 'axios';
 import { Skeleton } from '#/components/ui/skeleton';
+import Status from '#/components/Status';
+import ClockTimer, { usePollTimer } from '#/components/ClockTimer';
+import Results from '#/components/Results';
 
 export const Route = createFileRoute('/_protected/poll/$pollId/')({
   component: RouteComponent,
@@ -12,44 +15,18 @@ export const Route = createFileRoute('/_protected/poll/$pollId/')({
 function RouteComponent() {
   const { pollId } = Route.useParams();
 
-  const [timeLeft, setTimeLeft] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [poll, setPoll] = useState<PollResponse>();
-  const [publish, setPublish] = useState<boolean>(false);
+  const [pollStatus, setPollStatus] = useState<PollResponse['status']>("live");
+  console.log(poll?.status);
 
   const navigate = useNavigate();
 
   const shareLink = `${import.meta.env.VITE_CLIENT_URL}/response/${pollId}`;
 
-  useEffect(() => {
-    if (!poll || publish) return;
-    const expiryDate = new Date(poll.expiry);
-
-    const calculateTimeLeft = () => {
-
-      if (poll?.isCompleted) {
-        return 'Completed';
-      }
-
-      const difference = expiryDate.getTime() - new Date().getTime();
-      if (difference > 0) {
-        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((difference / 1000 / 60) % 60);
-        const seconds = Math.floor((difference / 1000) % 60);
-        return `${hours > 0 ? hours + 'h ' : ''}${minutes}m ${seconds}s`;
-      }
-      return 'Expired';
-    };
-
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [poll?.expiry]);
+  const timeLeft = usePollTimer(poll?.expiry);
 
   useEffect(() => {
     async function getPollById() {
@@ -60,7 +37,7 @@ function RouteComponent() {
 
         if (response.status === 200) {
           setPoll(response.response);
-          setPublish(response.response.isPublished);
+          setPollStatus(response.response.status);
         };
 
       } catch (error) {
@@ -83,24 +60,28 @@ function RouteComponent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  async function handlePublish() {
+  async function handlePublish(status: "completed" | "published" | "live") {
     try {
-      const response = await apiClient.publishPoll(pollId);
+      const response = await apiClient.updateStatus(pollId, status);
+      console.log(response);
 
       if (response.status === 200) {
-        setPublish(true);
+        setPollStatus(status);
+        if (poll) {
+          setPoll({ ...poll, status });
+        }
       }
     } catch (error) {
       if (error instanceof AxiosError) {
         setError(error.message);
       }
     }
-  }
+  };
 
   const getStatus = () => {
-    if (poll?.isCompleted && timeLeft === 'Expired') return { label: 'Results Published', color: 'bg-green-500/10 text-green-500 border-green-500/20 shadow-green-500/10' };
-    if (poll?.isCompleted || timeLeft === 'Expired') return { label: 'Completed', color: 'bg-gray-500/10 text-gray-500 border-gray-500/20 shadow-gray-500/10' };
-    return { label: 'Live', color: 'bg-[#F2923B]/10 text-[#F2923B] border-[#F2923B]/20 shadow-[#F2923B]/10' };
+    if (pollStatus === "published") return <Status text='Published'/>;
+    if (pollStatus === "completed") return <Status text='Completed'/>;
+    return <Status text='Live'/>;
   };
 
   const status = getStatus();
@@ -143,9 +124,7 @@ function RouteComponent() {
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-3">
                 <h1 className="text-3xl font-extrabold text-(--sea-ink)">{poll?.title}</h1>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${status.color}`}>
-                  {status.label}
-                </span>
+                {status}
 
               </div>
               <p className="text-(--sea-ink-soft) text-lg">{poll?.description}</p>
@@ -155,13 +134,8 @@ function RouteComponent() {
             <div className="shrink-0 flex flex-col gap-5 items-end">
 
               {/* Timer Panel */}
-              {!publish && (
-                <div className='flex justify-center items-center gap-2'>
-                  <div className="w-5 h-5 rounded-full bg-[#F2923B]/10 flex items-center justify-center shrink-0">
-                    <Clock className="w-6 h-6 text-[#F2923B]" />
-                  </div>
-                  <p className="text-md font-bold text-(--sea-ink) tabular-nums">{timeLeft}</p>
-                </div>
+              {pollStatus === "live" && (
+                <ClockTimer timeLeft={timeLeft} variant="minimal" />
               )}
 
               <div className='flex gap-3 items-center'>
@@ -169,10 +143,16 @@ function RouteComponent() {
                   <BarChart3 className="w-5 h-5 text-(--lagoon)" />
                   View Results
                 </button>
-                {!publish && (
-                  <button onClick={handlePublish} className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(242,146,59,0.2)] transition-all duration-200 hover:shadow-[0_0_30px_rgba(242,146,59,0.4)] hover:-translate-y-0.5 active:scale-95 cursor-pointer text-white" style={{ backgroundColor: '#F2923B' }}>
+                {(pollStatus === "completed" || (pollStatus === "live" && timeLeft === 'Expired')) && (
+                  <button onClick={() => handlePublish("published")} className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(242,146,59,0.2)] transition-all duration-200 hover:shadow-[0_0_30px_rgba(242,146,59,0.4)] hover:-translate-y-0.5 active:scale-95 cursor-pointer text-white" style={{ backgroundColor: '#F2923B' }}>
                     <UploadCloud className="w-5 h-5" />
                     Publish
+                  </button>
+                )}
+                {pollStatus === "live" && timeLeft !== 'Expired' && (
+                  <button onClick={() => handlePublish("completed")} className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-[0_0_20px_rgba(242,146,59,0.2)] transition-all duration-200 hover:shadow-[0_0_30px_rgba(242,146,59,0.4)] hover:-translate-y-0.5 active:scale-95 cursor-pointer text-white" style={{ backgroundColor: '#F2923B' }}>
+                    <UploadCloud className="w-5 h-5" />
+                    Early end
                   </button>
                 )}
               </div>
@@ -183,40 +163,48 @@ function RouteComponent() {
         {/* Dashboard Grid */}
         <div className="">
 
-          {/* Main Content (Questions Preview) */}
+          {/* Main Content (Questions Preview or Results) */}
           <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-xl font-bold text-(--sea-ink) px-2">Questions Preview</h2>
-            {poll?.questions.map((q, index) => (
-              <div key={q._id} className="bg-(--surface) border border-(--line) rounded-2xl p-6 shadow-md transition-all hover:border-(--lagoon)">
-                <h3 className="text-lg font-medium text-(--sea-ink) mb-4 flex items-start gap-2">
-                  <span className="text-(--sea-ink-soft) font-normal">{index + 1}.</span>
-                  {q.question}
-                  {q.isRequired && <span className="text-red-500 font-bold ml-1" title="Required">*</span>}
-                </h3>
-
-                <div className="pl-6">
-                  {q.questionType === 'CHOICE' ? (
-                    <div className="space-y-3">
-                      {q.options?.map((opt) => (
-                        <div key={opt._id} className="flex items-center gap-3">
-                          <Radio className="w-5 h-5 text-(--sea-ink-soft)/50" />
-                          <span className="text-(--sea-ink-soft) bg-(--surface-strong) border border-(--line) px-4 py-2 rounded-xl flex-1 cursor-not-allowed opacity-80">
-                            {opt.option}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex gap-3">
-                      <AlignLeft className="w-5 h-5 text-(--sea-ink-soft)/50 shrink-0 mt-3" />
-                      <div className="w-full h-24 bg-(--surface-strong) border border-(--line) border-dashed rounded-xl px-4 py-3 text-(--sea-ink-soft)/50 cursor-not-allowed">
-                        Text answer field (read-only)
-                      </div>
-                    </div>
-                  )}
-                </div>
+            {pollStatus === "published" ? (
+              <div className="w-full">
+                <Results poll={poll!} pollId={pollId} />
               </div>
-            ))}
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-(--sea-ink) px-2">Questions Preview</h2>
+                {poll?.questions.map((q, index) => (
+                  <div key={q._id} className="bg-(--surface) border border-(--line) rounded-2xl p-6 shadow-md transition-all hover:border-(--lagoon)">
+                    <h3 className="text-lg font-medium text-(--sea-ink) mb-4 flex items-start gap-2">
+                      <span className="text-(--sea-ink-soft) font-normal">{index + 1}.</span>
+                      {q.question}
+                      {q.isRequired && <span className="text-red-500 font-bold ml-1" title="Required">*</span>}
+                    </h3>
+
+                    <div className="pl-6">
+                      {q.questionType === 'CHOICE' ? (
+                        <div className="space-y-3">
+                          {q.options?.map((opt) => (
+                            <div key={opt._id} className="flex items-center gap-3">
+                              <Radio className="w-5 h-5 text-(--sea-ink-soft)/50" />
+                              <span className="text-(--sea-ink-soft) bg-(--surface-strong) border border-(--line) px-4 py-2 rounded-xl flex-1 cursor-not-allowed opacity-80">
+                                {opt.option}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <AlignLeft className="w-5 h-5 text-(--sea-ink-soft)/50 shrink-0 mt-3" />
+                          <div className="w-full h-24 bg-(--surface-strong) border border-(--line) border-dashed rounded-xl px-4 py-3 text-(--sea-ink-soft)/50 cursor-not-allowed">
+                            Text answer field (read-only)
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
 
           {/* Sidebar */}

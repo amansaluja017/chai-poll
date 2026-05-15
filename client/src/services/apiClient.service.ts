@@ -19,7 +19,6 @@ export interface PollResponse {
   createdBy: string;
   totalVotes: number;
   expiry: number;
-  isCompleted: boolean;
   isAuthenticationRequired: boolean;
   questions: {
     _id: string;
@@ -33,7 +32,7 @@ export interface PollResponse {
     }[];
     textResponses: string[];
   }[];
-  isPublished: boolean;
+  status: "live" | "completed" | "published";
   createdAt: Date;
   updatedAt: Date;
 };
@@ -85,10 +84,9 @@ const apiClient = {
     return { response: response.data.data, status: response.status };
   },
 
-  publishPoll: async (id: string) => {
-    const response = await api.patch(`${import.meta.env.VITE_API_URL}/api/v1/poll/publish/${id}`);
-
-    return {status: response.status};
+  updateStatus: async (id: string, status: "published" | "completed" | "live") => {
+    const response = await api.patch(`${import.meta.env.VITE_API_URL}/api/v1/poll/update-status/${id}`, { status });
+    return { response: response.data.data, status: response.status };
   }
 };
 

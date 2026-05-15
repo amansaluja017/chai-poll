@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react';
-import { Clock, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { PollResponse } from '#/services/apiClient.service';
 import apiClient from '#/services/apiClient.service';
 import { AxiosError } from 'axios';
@@ -8,6 +8,7 @@ import { Skeleton } from '#/components/ui/skeleton';
 import { useAuth } from '#/auth/use-auth';
 import { useSocket } from '#/socket/use-socket';
 import Results from '#/components/Results';
+import ClockTimer, { usePollTimer } from '#/components/ClockTimer';
 
 export const Route = createFileRoute('/response/$pollId/')({
   component: RouteComponent,
@@ -16,44 +17,19 @@ export const Route = createFileRoute('/response/$pollId/')({
 function RouteComponent() {
   const { pollId } = Route.useParams();
 
-  const [timeLeft, setTimeLeft] = useState('');
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [poll, setPoll] = useState<PollResponse | null>(null);
-  const [isPublished, setIsPublished] = useState<boolean>(false);
+  const [pollStatus, setPollStatus] = useState<PollResponse["status"]>("live");
 
   const { user, setGuestId, guestId, loading: authLoading } = useAuth();
   const socket = useSocket();
+  console.log(poll?.status)
 
-  useEffect(() => {
-    const expiryDate = new Date(poll?.expiry!);
-
-    const calculateTimeLeft = () => {
-
-      if (poll?.isCompleted) {
-        return 'Expired';
-      };
-
-      const difference = expiryDate.getTime() - new Date().getTime();
-      if (difference > 0) {
-        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((difference / 1000 / 60) % 60);
-        const seconds = Math.floor((difference / 1000) % 60);
-        return `${hours > 0 ? hours + 'h ' : ''}${minutes}m ${seconds}s`;
-      }
-      return 'Expired';
-    };
-
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [poll?.expiry]);
+  const timeLeft = usePollTimer(poll?.expiry);
 
   useEffect(() => {
     if (authLoading) return;
@@ -66,8 +42,8 @@ function RouteComponent() {
 
         if (response.status === 200) {
           setPoll(response.response);
-          setIsPublished(response.response.isPublished);
-
+          setPollStatus(response.response.status);
+          
           if (response.response.isAuthenticationRequired && !user) {
 
             setError("Authentication required to respond to this poll");
@@ -85,7 +61,7 @@ function RouteComponent() {
             setGuestId(guestId);
           };
 
-          if (response.response.isCompleted) {
+          if (response.response.status === "completed") {
             setError("Poll is already completed");
             return;
           };
@@ -142,7 +118,7 @@ function RouteComponent() {
     }
   };
 
-  if (isSubmitted && !isPublished) {
+  if (isSubmitted) {
     return (
       <main className="min-h-screen p-6 md:p-12 font-sans flex items-center justify-center" style={{ paddingTop: '150px' }}>
         <div className="bg-(--surface) border border-(--line) rounded-3xl p-10 shadow-xl max-w-lg w-full text-center space-y-4 animate-in zoom-in-95">
@@ -195,15 +171,15 @@ function RouteComponent() {
     );
   };
 
-  if (poll && timeLeft === "Expired" && !isPublished) {
+  if (poll && pollStatus === "completed") {
     return (
       <main className="min-h-screen p-6 md:p-12 font-sans flex items-center justify-center" style={{ paddingTop: '150px' }}>
         <div className="bg-(--surface) border border-(--line) rounded-3xl p-10 shadow-xl max-w-lg w-full text-center space-y-4 animate-in zoom-in-95">
           <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10" />
           </div>
-          <h1 className="text-3xl font-bold text-(--sea-ink)">Poll Expired</h1>
-          <p className="text-(--sea-ink-soft) text-lg">This poll has expired and can no longer be submitted.</p>
+          <h1 className="text-3xl font-bold text-(--sea-ink)">Poll completed!</h1>
+          <p className="text-(--sea-ink-soft) text-lg">This poll has been completed.</p>
         </div>
       </main>
     );
@@ -213,7 +189,7 @@ function RouteComponent() {
 
   return (
     <main className="min-h-screen p-6 md:p-12 font-sans" style={{ paddingTop: '150px' }}>
-      {!isPublished ? (
+      {poll.status === "live" && (
         <div className="max-w-3xl mx-auto space-y-8">
 
           {/* Header Section */}
@@ -227,19 +203,8 @@ function RouteComponent() {
               </div>
 
               {/* Timer */}
-              {timeLeft !== 'Expired' ? (
-                <div className="flex items-center gap-3 bg-(--surface-strong) px-5 py-3 rounded-2xl border border-(--line) shrink-0">
-                  <Clock className="w-5 h-5 text-[#F2923B]" />
-                  <div>
-                    <p className="text-xs font-medium text-(--sea-ink-soft) uppercase tracking-wider">Time Remaining</p>
-                    <p className="text-xl font-bold text-(--sea-ink) tabular-nums leading-none">{timeLeft}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 bg-red-500/10 px-5 py-3 rounded-2xl border border-red-500/20 shrink-0">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  <p className="text-lg font-bold text-red-500">Poll Expired</p>
-                </div>
+              {pollStatus === "live" && (
+                <ClockTimer timeLeft={timeLeft} variant="default" />
               )}
             </div>
           </div>
@@ -314,7 +279,9 @@ function RouteComponent() {
           </form>
 
         </div>
-      ) : (
+      )}
+
+      {poll.status === "published" && (
         <div className="max-w-4xl mx-auto w-full">
           <Results poll={poll} pollId={pollId} />
         </div>

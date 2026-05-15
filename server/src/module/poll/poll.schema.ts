@@ -27,10 +27,6 @@ const pollSchema = new mongoose.Schema<Poll>({
         required: [true, "Expiry is required"],
         default: () => new Date(Date.now() + 30 * 60 * 1000)
     },
-    isCompleted: {
-        type: Boolean,
-        default: false
-    },
     isAuthenticationRequired: {
         type: Boolean,
         default: false
@@ -73,9 +69,10 @@ const pollSchema = new mongoose.Schema<Poll>({
         ],
         required: [true, "Questions are required"]
     },
-    isPublished: {
-        type: Boolean,
-        default: false
+    status: {
+        type: String,
+        enum: ["live", "completed", "published"],
+        default: "live"
     }
 }, { timestamps: true });
 
